@@ -193,3 +193,14 @@ addButton.addEventListener('click', () => {
 });
 
 User.showData();
+
+
+
+//test postMessage
+window.addEventListener('message', (e) => {
+    if (e.data == 'set') {
+        localStorage.setItem('set', 'message');
+    } else if (e.data == 'get') {
+        localStorage.setItem('get', 'message');
+    }
+});

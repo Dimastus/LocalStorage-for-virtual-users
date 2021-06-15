@@ -11,6 +11,8 @@ class User {
         this.img = img || 'not enter';
         this.dateReg = arg[0] || new Date().toLocaleString('ru-RU').replace(/,/, '');
         this.dateUpd = arg[1] || 'not updated';
+        this.callback = false;
+        this.action = 'get';
     }
     showInConsole() {
         if (this.parseData()) {
@@ -26,11 +28,11 @@ class User {
                 console.log("Такой чел уже есть. Введи другие данные");
                 return false;
             } else {
-                localStorage.setItem(this.email, `${this.username}, ${this.phone}, ${this.email}, ${this.city}, ${this.pay}, ${this.address}, ${this.img}, ${this.dateReg}, ${this.dateUpd || 'not updated'}`);
+                localStorage.setItem(this.email, `${this.username}, ${this.phone}, ${this.email}, ${this.city}, ${this.pay}, ${this.address}, ${this.img}, ${this.dateReg}, ${this.dateUpd || 'not updated'}, ${this.callback}, ${this.action}`);
                 return true;
             }
         } else {
-            localStorage.setItem(this.email, `${this.username}, ${this.phone}, ${this.email}, ${this.city}, ${this.pay}, ${this.address}, ${this.img}, ${this.dateReg}, ${this.dateUpd || 'not updated'}`);
+            localStorage.setItem(this.email, `${this.username}, ${this.phone}, ${this.email}, ${this.city}, ${this.pay}, ${this.address}, ${this.img}, ${this.dateReg}, ${this.dateUpd || 'not updated'}, ${this.callback}, ${this.action}`);
             return true;
         }
     }
@@ -54,6 +56,12 @@ class User {
                 td.innerHTML = iterator;
                 tr.append(td);
             }
+            // let tmpArr = Object.values(values);
+            // for (let i = 0; i < tmpArr.length - 2; i++) {
+            //     let td = document.createElement('td');
+            //     td.innerHTML = tmpArr[i];
+            //     tr.append(td);
+            // }
 
             [inpUpd.type, inpDel.type] = ['button', 'button'];
             [inpUpd.name, inpDel.name] = ['update', 'delete'];
@@ -121,9 +129,10 @@ class User {
                     tr.append(td);
                 }
 
-                for (const iterator of Object.values(element)) {
+                let tmpArr = Object.values(element);
+                for (let i = 0; i < tmpArr.length - 2; i++) {
                     let td = document.createElement('td');
-                    td.innerHTML = iterator;
+                    td.innerHTML = tmpArr[i];
                     tr.append(td);
                 }
 
@@ -175,6 +184,8 @@ t.addEventListener('click', (e) => {
                 img: prompt('Enter new img', tmp[6]),
                 dateReg: tmp[7],
                 dateUpd: dateUpd,
+                callback: tmp[8],
+                action: tmp[9],
             };
             // console.log(obj);
             User.deleteInfoFromLS(email);
@@ -199,10 +210,52 @@ User.showData();
 
 
 //test postMessage
+let iframe = document.querySelector('iframe');
+
 window.addEventListener('message', (e) => {
-    if (e.data == 'set') {
-        localStorage.setItem('set', 'message');
-    } else if (e.data == 'get') {
-        localStorage.setItem('get', 'message');
+    if (e.origin != 'https://dimastus.github.io') {
+        return;
     }
+
+    const parseData = (data) => {
+        return JSON.parse(data);
+    };
+
+    let { action, email } = parseData(e.data);
+
+    if (action == 'set') {
+        let user = new User(...Object.values(parseData(e.data)));
+        user.addInfo();
+        iframe.contentWindow.postMessage(e.data, 'https://dimastus.github.io');
+    } else if (action == 'get') {
+        let info = getInfo(email);
+        iframe.contentWindow.postMessage(info, 'https://dimastus.github.io');
+    } else if (action == 'del') {
+        let info = getInfo(email);
+        User.deleteInfoFromLS(email);
+        iframe.contentWindow.postMessage(info, 'https://dimastus.github.io');
+    } else {
+        console.error(`пришла иная команда: ${e.data}`);
+    }
+
+    User.showData();
 });
+
+function getInfo(email) {
+    let tmp = localStorage.getItem(email).split(',').map(el => el.trim());
+    let obj = {
+        username: tmp[0],
+        phone: tmp[1],
+        email: tmp[2],
+        city: tmp[3],
+        pay: tmp[4],
+        address: tmp[5],
+        img: tmp[6],
+        dateReg: tmp[7],
+        dateUpd: dateUpd,
+        callback: tmp[8],
+        action: tmp[9],
+    };
+
+    return JSON.stringify(obj);
+}

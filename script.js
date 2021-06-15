@@ -11,16 +11,8 @@ class User {
         this.img = img || 'not enter';
         this.dateReg = arg[0] || new Date().toLocaleString('ru-RU').replace(/,/, '');
         this.dateUpd = arg[1] || 'not updated';
-        this.callback = false;
+        this.callback = arg[3];
         this.action = 'get';
-    }
-    showInConsole() {
-        if (this.parseData()) {
-            let obj = this.parseData();
-            console.log(obj);
-        } else {
-            console.log('Data is not');
-        }
     }
     _addInfoToLS() {
         if (localStorage.length) {
@@ -146,8 +138,23 @@ class User {
             }
         }
     }
+    static showInConsole(key) {
+        if (localStorage.getItem(key)) {
+            console.log(`gotten data: `, localStorage.getItem(key));
+            isCallback(localStorage.getItem(key));
+        } else {
+            console.log('Data is not');
+        }
+    }
     static deleteInfoFromLS(key) {
-        localStorage.removeItem(key);
+        if (localStorage.getItem(key)) {
+            let data = localStorage.getItem(key);
+            console.log(`removed: key --> ${key}`);
+            localStorage.removeItem(key);
+            isCallback(data);
+        } else {
+            console.log('Data is not');
+        }
     }
     static clearTable() {
         let tbody = document.querySelector('table tbody');
@@ -184,8 +191,8 @@ t.addEventListener('click', (e) => {
                 img: prompt('Enter new img', tmp[6]),
                 dateReg: tmp[7],
                 dateUpd: dateUpd,
-                callback: tmp[8],
-                action: tmp[9],
+                callback: tmp[9],
+                action: tmp[10],
             };
             // console.log(obj);
             User.deleteInfoFromLS(email);
@@ -210,30 +217,26 @@ User.showData();
 
 
 //test postMessage
-let iframe = document.querySelector('iframe');
+const domain = 'https://dimastus.github.io',
+// const domain = 'http://task-4and5',
+    listCallbacks = {};
 
 window.addEventListener('message', (e) => {
-    if (e.origin != 'https://dimastus.github.io') {
+    if (e.origin != domain) {
         return;
     }
 
-    const parseData = (data) => {
-        return JSON.parse(data);
-    };
-
-    let { action, email } = parseData(e.data);
+    let { action, email } = JSON.parse(e.data);
 
     if (action == 'set') {
-        let user = new User(...Object.values(parseData(e.data)));
+        let user = new User(...Object.values(JSON.parse(e.data)));
         user.addInfo();
-        iframe.contentWindow.postMessage(e.data, 'https://dimastus.github.io');
+        console.log(`written: key -->`, user.email);
+        isCallback(localStorage.getItem(user.email));
     } else if (action == 'get') {
-        let info = getInfo(email);
-        iframe.contentWindow.postMessage(info, 'https://dimastus.github.io');
+        User.showInConsole(email);
     } else if (action == 'del') {
-        let info = getInfo(email);
         User.deleteInfoFromLS(email);
-        iframe.contentWindow.postMessage(info, 'https://dimastus.github.io');
     } else {
         console.error(`пришла иная команда: ${e.data}`);
     }
@@ -241,21 +244,23 @@ window.addEventListener('message', (e) => {
     User.showData();
 });
 
-function getInfo(email) {
-    let tmp = localStorage.getItem(email).split(',').map(el => el.trim());
-    let obj = {
-        username: tmp[0],
-        phone: tmp[1],
-        email: tmp[2],
-        city: tmp[3],
-        pay: tmp[4],
-        address: tmp[5],
-        img: tmp[6],
-        dateReg: tmp[7],
-        dateUpd: 'not updated',
-        callback: tmp[8],
-        action: tmp[9],
+function isCallback(str) {
+    let tmpData = str.split(',').map(elem => elem.trim());
+    let result = {
+        username: tmpData[0],
+        phone: tmpData[1],
+        email: tmpData[2],
+        city: tmpData[3],
+        pay: tmpData[4],
+        address: tmpData[5],
+        img: tmpData[6],
+        dateReg: tmpData[7],
+        dateUpd: tmpData[8],
+        callback: tmpData[9],
+        action: tmpData[10],
     };
 
-    return JSON.stringify(obj);
+    if (result.callback) {
+        window.parent.postMessage(JSON.stringify(result), '*')
+    }
 }

@@ -252,7 +252,7 @@ function getInfo(email) {
         address: tmp[5],
         img: tmp[6],
         dateReg: tmp[7],
-        dateUpd: dateUpd,
+        dateUpd: 'not updated',
         callback: tmp[8],
         action: tmp[9],
     };
